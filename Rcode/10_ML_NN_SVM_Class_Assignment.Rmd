@@ -1,0 +1,45 @@
+---
+title: "Data Science and Predictive Analytics (UMich HS650)"
+subtitle: "<h2><u>Assignment 10: Black Box Machine-Learning Methods: Neural Networks and Support Vector Machines</u></h2>"
+author: "<h3>SOCR/MIDAS (Ivo Dinov)</h3>"
+date: "`r format(Sys.time(), '%B %Y')`"
+tags: [DSPA, SOCR, MIDAS, Big Data, Predictive Analytics] 
+output:
+  html_document:
+    theme: spacelab
+    highlight: tango
+    includes:
+      before_body: SOCR_header.html
+      after_body: SOCR_footer_tracker.html
+    toc: true
+    number_sections: true
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+---
+
+# Learn and predict a power-function
+We saw in [Chapter 10](http://www.socr.umich.edu/people/dinov/courses/DSPA_notes/10_ML_NN_SVM_Class.html) the `square root function`, it's just one instance of an example of a [power-function](https://en.wikipedia.org/wiki/Power_function). 
+
+* Why did we observe a decrease of the accuracy of the NN prediction of the square-root outside the interval $[0,1]$ (note we trained inside $[0,1]$)? How can you improve on the prediction of the square-root network?
+* Can you design a more generic NN network that can learn and predict a [power-function](https://en.wikipedia.org/wiki/Power_function) for a given power parameter ($\lambda \in \Re$)?
+
+# Pediatric Schizophrenia Study
+Use the [SOCR Normal and Schizophrenia pediatric neuroimaging study](http://wiki.socr.umich.edu/index.php/SOCR_Data_Oct2009_ID_NI) data to complete the following tasks:
+
+* Conduct some initial data visualization and exploration
+* Use derived neuroimaging biomarkers (e.g., *Age*, *FS_IQ*, *TBV*, *GMV*, *WMV*, *CSF*, *Background*, *L_superior_frontal_gyrus*, *R_superior_frontal_gyrus*, ..., *brainstem*) to train a `NN` model and predict *DX* (Normals=1; Schizophrenia=2)
+* Try one hidden layer with different number of nodes
+* Try multiple hidden layers and compare the results to the single layer. Which model is better?
+* Compare the type I (false-positive) and type II (false-negative) errors for the alternative methods
+* Train separate models to predict *DX* (diagnosis) for the *Male* and *Female* cohorts, respectively. Explain your findings
+* Train an *SVM* (using `ksvm` and `svm` in `e1071`) for *Age*, *FS_IQ*, *TBV*, *GMV*, *WMV*, *CSF*, *Background* to predict *DX*. Compare the results of linear, Gaussian and polynomial SVM kernels
+* Add *Sex* to your models and see if this makes a difference
+* Expand the model by training on all derived neuroimaging biomarkers and re-train the SVM using *Age*, *FS_IQ*, *TBV*, *GMV*, *WMV*, *CSF*, *Background*, *L_superior_frontal_gyrus*, *R_superior_frontal_gyrus*, ..., *brainstem*. Again, try linear, Gaussian and polynomial kernels. Compare the results
+* Are there differences between the alternative kernels?
+* For *Age*, *FS_IQ*, *TBV*, *GMV*, *WMV*, *CSF*, and *Background*, tune parameters for Gaussian and polynomial kernels
+* Draw a CV (cross-validation) plot and interpret the resulting graph
+* Use different random seed and repeat the experiment, are the results stable?
+* Inspecting the results above, explain why it makes sense to set a tune over a range such as $exp(-5:8)$
+* How can we design alternative tuning strategies other than greedy search?

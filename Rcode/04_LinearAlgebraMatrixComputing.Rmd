@@ -1,0 +1,1148 @@
+---
+title: "Data Science and Predictive Analytics (UMich HS650)"
+subtitle: "<h2><u>Linear Algebra &amp; Matrix Computing</u></h2>"
+author: "<h3>SOCR/MIDAS (Ivo Dinov)</h3>"
+date: "`r format(Sys.time(), '%B %Y')`"
+tags: [DSPA, SOCR, MIDAS, Big Data, Predictive Analytics] 
+output:
+  html_document:
+    theme: spacelab
+    highlight: tango
+    includes:
+      before_body: SOCR_header.html
+    toc: true
+    number_sections: true
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+---
+
+*Linear algebra* is a branch of mathematics that studies linear associations using vectors, vector-spaces, linear equations, linear  transformations and matrices. Although it is generally challenging to visualize complex data, e.g., large vectors, tensors, and tables in n-dimensional Euclidean spaces ($n\ge 3$), linear algebra allows us to represent, model, synthesize and summarize such compex data.
+
+Virtually all natural processes permit first-order linear approximations. This is useful because linear equations are easy (to write, interpret, solve) and these first order approximations may be useful to practically assess the process, determine general trends, identify potential patterns, and suggest associations in the data.
+
+Linear equations represent the simplest type of models for many processes. Higher order models may include additional non-linear terms, e.g., [Taylor-series expansion](https://en.wikipedia.org/wiki/Taylor_series). Linear algebra provides the foundation for linear representation, analytics, solutions, inference and visualization of first-order affine models. Linear algebra is a small part of the larger mathematics *functional analysis* field, which is actually the infinite-dimensional version of linear algebra.
+
+Specifically, *linear algebra* allows us to **computationally** manipulate, model, solve, and interpret complex systems of equations representing large numbers of dimensions/variables. Arbitrarily large problems can be mathematically transformed into simple matrix equations of the form $A x = b$ or $A x = \lambda x$.
+
+In this chapter, we review the fundamentals of linear algebra, matrix manipulation and their applications to representation, modeling, and analysis of real data. Specifically, we will cover (1) construction of matrices and matrix operations, (2) general matrix algebra notations, (3) eigenvalues and eigenvectors of linear operators, (4) least squares estimation, and (5) linear regression and variance-covariance matrices.
+
+#Building Matrices
+
+## Create matrices
+
+The easiest way to create matrix is using `matrix()` function. It put those elements of a vector into desired positions in a matrix. 
+```{r eval=T}
+seq1<-seq(1:6)
+m1<-matrix(seq1, nrow=2, ncol=3)
+m1
+m2<-diag(seq1)
+m2
+m3<-matrix(rnorm(20), nrow=5)
+m3
+```
+The function `diag()` is very useful. When the object is a vector, it create a diagonal matrix with the vector in the principal diagonal.
+```{r eval=T}
+diag(c(1, 2, 3))
+```
+When the object is a matrix, `diag()` returns its principal diagonal.
+```{r eval=T}
+diag(m1)
+```
+When the object is a scalar, `diag(k)` returns a $k\times k$ identity matrix.
+```{r eval=T}
+diag(4)
+```
+
+## Adding columns and rows
+
+Function `cbind()` and `rbind()` will be used in this section.
+```{r eval=T}
+c1<-1:5
+m4<-cbind(m3, c1)
+m4
+r1<-1:4
+m5<-rbind(m3, r1)
+m5
+```
+Note that `m5` has a row name `r1` in the *4*th row. We remove row/column names by naming them as `NULL`. 
+```{r eval=T}
+dimnames(m5)<-list(NULL, NULL)
+m5
+```
+
+#Matrix subscripts
+
+Each element in a matrix has a location. `A[i, j]` means the *i*th row and *j*th column in matrix *A*. We can also access to some specific rows or columns using matrix subscripts.
+```{r eval=T}
+m6<-matrix(1:12, nrow=3)
+m6
+m6[1, 2]
+m6[1, ]
+m6[, 2]
+m6[, c(2, 3)]
+```
+
+#Matrix Operations
+
+## Addition
+
+Elements in same position adds up together.
+```{r eval=T}
+m7<-matrix(1:6, nrow=2)
+m7
+m8<-matrix(2:7, nrow = 2)
+m8
+m7+m8
+```
+
+## Subtraction
+
+Subtraction between elements in same position.
+```{r eval=T}
+m8-m7
+m8-1
+```
+
+## Multiplication
+
+We can do elementwise multiplication or matrix multiplication. For matrix multiplication, dimensions have to be match. That is the number of columns in the first matrix must equal to the number of rows in the second matrix. 
+
+### Elementwise multiplication
+
+Multiplication between elements in same position.
+```{r eval=T}
+m8*m7
+```
+
+### Matrix multiplication
+
+The resulting matrix will have the same number of rows as the first matrix and the same number of columns as the second matrix.
+```{r eval=T}
+dim(m8)
+m9<-matrix(3:8, nrow=3)
+m9
+dim(m9)
+m8%*%m9
+```
+We made a $2\times 2$ matrix from multiplying two matrices $2\times 3$ * $3\times 2$.
+
+The process of multiplying two vectors is called **outer product**. Assume we have two vectors $u$ and $v$, in matrix multiplication their outer product is the same as $u%*%t(v)$ or mathematically $uv^T$. In R the operator for outer product is `%o%`.
+```{r eval=T}
+u<-c(1, 2, 3, 4, 5)
+v<-c(4, 5, 6, 7, 8)
+u%o%v
+u%*%t(v)
+```
+
+What are the differences between $u\%*\%t(v)$, $u\%*\%t(v)$, $u * t(v)$, and $u * v$?
+
+## Division
+
+Elementwise division.
+```{r eval=T}
+m8/m7
+m8/2
+```
+
+## Transpose
+
+The transpose of a matrix is to swapping columns and rows for a matrix. In R we can do this in a simple function `t()`.
+
+```{r eval=T}
+m8
+t(m8)
+```
+Notice that the [1, 2] element in `m8` is the [2, 1] element in `t(m8)`.
+
+## Inverse
+
+The inverse of a matrix ($A^{-1}$) multiply the original matrix ($A$) will give us an identity matrix(has 1s on the diagonal and 0s off-diagonal).
+$$AA^{-1}=I$$
+Assume we have the following $2\times 2$ matrices:
+$$
+\left(\begin{array}{cc} 
+a & b \\
+c & d
+\end{array}\right)
+$$
+Its matrix inverse is
+$$
+\frac{1}{ad-bc}\left(\begin{array}{cc} 
+d & -b \\
+-c & a
+\end{array}\right)
+$$
+For higher dimensions, the formula will be even trickier. Luckily, we have R to help us do the work. The `solve()` function in R calculates matrix inverse.
+```{r eval=T}
+m10<-matrix(1:4, nrow=2)
+m10
+solve(m10)
+m10%*%solve(m10)
+```
+Note that only some matrices have inverse. These matrices are square (have same number of rows and columns) and non-singular.
+
+Another function that can help us to get inverse of a matrix is the `ginv()` function under `MASS` package. This function give us Moore-Penrose Generalized Inverse of a matrix.
+```{r eval=T}
+require(MASS)
+ginv(m10)
+```
+
+Also, function `solve()` can be used as solving matrix equations. `solve(A, b)` returns vector $x$ in the equation $b = Ax$ (i.e., $x= A^{-1}b$).
+```{r eval=T}
+s1<-diag(c(2, 4, 6, 8))
+s2<-c(1, 2, 3, 4)
+solve(s1, s2)
+```
+
+The following table summarizes basic operation functions.
+
+Expression    |Explanation
+--------------|----------------------------------------------------------------
+`t(x)`| transpose
+`diag(x)`| diagonal
+`%*%`| matrix multiplication
+`solve(a, b)`| solves `a %*% x = b` for x
+`solve(a)`| matrix inverse of a
+`rowsum(x)`| sum of rows for a matrix-like object. `rowSums(x)` is a faster version
+`colSums(x)`, `colSums(x)`| id. for columns 
+`rowMeans(x)`| fast version of row means 
+`colMeans(x)`| id. for columns
+
+```{r eval=T}
+mat1 <- cbind(c(1, -1/5), c(-1/3, 1))
+mat1.inv <- solve(mat1)
+
+mat1.identity <- mat1.inv %*% mat1
+mat1.identity
+b <- c(1, 2)
+x <- solve (mat1, b)
+x
+```
+
+# Matrix Algebra Notation
+
+## Matrix Notation
+
+We introduce the basics of matrix notation.  The product $AB$ between matrices $A$ and $B$ is defined only if the number of columns in $A$ equals the number of rows in $B$. That is, we can multiply an $m\times n$ matrix $A$ by an $n\times k$ matrix $B$ and the result will be $AB_{m\times k}$ matrix. Each element of the product matrix, $(AB_{i, j})$, represents the product of the $i$-th row in $A$ and the $j$-th column in $B$, which are of the same size $n$. Matrix multiplication is `row-by-column`.
+
+## Linear models
+
+Linear algebra notation simplifies the mathematical descriptions and manipulations of linear models, as well as coding in R.
+
+The main point of now is to show how we can write the models using matrix notation. Later, we'll explain how this is useful for solving the least squares matrix equation. Start by defining notation and matrix multiplication.
+
+## Solving Systems of Equations
+
+Linear algebra notation enables the mathematical analysis and Solution of systems of linear equations:
+
+$$
+\begin{align*}
+a + b + 2c &= 6\\
+3a - 2b + c &= 2\\
+2a + b  - c &= 3
+\end{align*}
+$$
+
+It provides a generic machinery for solving these problems. 
+
+$$ 
+\underbrace{\begin{pmatrix}
+1&1&2\\
+3&-2&1\\
+2&1&-1
+\end{pmatrix}}_{\text{A}}
+\underbrace{\begin{pmatrix}
+a\\
+b\\
+c
+\end{pmatrix}}_{\text{x}} =
+\underbrace{\begin{pmatrix}
+6\\
+2\\
+3
+\end{pmatrix}}_{\text{b}}$$
+
+That is: $Ax = b$. This implies that:
+
+$$\begin{pmatrix}
+a\\
+b\\
+c
+\end{pmatrix} =
+\begin{pmatrix}
+1&1&2\\
+3&-2&1\\
+2&1&-1
+\end{pmatrix}^{-1}
+\begin{pmatrix}
+6\\
+2\\
+3
+\end{pmatrix}
+$$
+
+In other words, $A^{-1}A x ==x = A^{-1}b$.
+
+Notice that this parallels the solution to simple (univariate) linear equations like: 
+$$\underbrace{2}_{\text{(design matrix) A }} \underbrace{x}_{\text{unknown x }} \underbrace{-3}_{\text{simple constant term}} = \underbrace{5}_{\text{b}}.$$
+
+The constant term, $-3$, can be simply joined with the right-hand-size, $b$, to form a new term $b'=5+3=8$, thus the shifting factor is mostly ignored in linear models, or linear equations, to simplify the equation to:
+$$\underbrace{2}_{\text{(design matrix) A }} \underbrace{x}_{\text{unknown x }}  = \underbrace{5+3}_{\text{b'}}=\underbrace{8}_{\text{b'}}.$$
+
+This (simple) linear equation is solved by multiplying both-sides by the inverse (reciprocal) of the $x$ multiplier, $2$:
+$$\frac{1}{2} 2 x  = \frac{1}{2} 8.$$
+Thus, the unique solution is:
+$$x  = \frac{1}{2} 8=4.$$
+
+So, let's use exactly the same protocol to solve the corresponding matrix equation (linear equations, $Ax = b$) for real using R (the unknown is $x$, and the design matrix $A$ and the constant vector $b$ are known):
+
+$$ 
+\underbrace{\begin{pmatrix}
+1&1&2\\
+3&-2&1\\
+2&1&-1
+\end{pmatrix}}_{\text{A}}
+\underbrace{\begin{pmatrix}
+a\\
+b\\
+c
+\end{pmatrix}}_{\text{x}} =
+\underbrace{\begin{pmatrix}
+6\\
+2\\
+3
+\end{pmatrix}}_{\text{b}}$$
+
+```{r eval=T}
+A_matrix_values <- c(1, 1, 2, 3, -2, 1, 2, 1, -1)
+A <- t(matrix(A_matrix_values, nrow=3, ncol=3))  # matrix elements arranged by columns, so, we need to transpose to arrange them by rows.
+b <- c(6, 2, 3)
+# to solve Ax = b, x=A^{-1}*b
+x <- solve (A, b)
+# Ax = b ==> x = A^{-1} * b
+x
+
+# Check the Solution x=(1.35 1.75 1.45)
+LHS <- A %*% x
+round(LHS-b, 6)
+```
+
+How about if we want to triple-check the accuracy of the `solve` method to provide accurate solutions to matrix-based systems of linear equations?
+
+We can generate the solution ($x$) to the equation $Ax=b$ using first principles:
+$$ x = A^{-1}b$$
+
+```{r eval=T}
+A.inverse <- solve(A) # the inverse matrix A^{-1} 
+x1 <- A.inverse %*% b
+# check if X and x1 are the same
+x; x1
+round(x - x1, 6)
+```
+
+## The identity matrix
+
+The identity matrix is the matrix analog to the multiplicative numeric identity, the number $1$. Multiplying the identity matrix by any other matrix ($B$) does not change the matrix $B$. For this to happen, the multiplicative identity matrix must look like:
+
+$$ \mathbf{I} = \begin{pmatrix} 1&0&0&\dots&0&0\\
+0&1&0&\dots&0&0\\
+0&0&1&\dots&0&0\\
+\vdots &\vdots & \vdots & \ddots&\vdots&\vdots\\
+0&0&0&\dots&1&0\\
+0&0&0&\dots&0&1 \end{pmatrix} $$
+
+The identity matrix is always square matrix with diagonal elements $1$ and $0$ at the off-diagonal elements.
+
+If you follow the matrix multiplication rule above, you notice this works out:
+
+$$ \mathbf{X\times I} = \begin{pmatrix} x_{1, 1} & \dots & x_{1, p}\\
+& \vdots & \\ x_{n, 1} & \dots & x_{n, p} \end{pmatrix} 
+\begin{pmatrix} 1&0&0&\dots&0&0\\
+0&1&0&\dots&0&0\\
+0&0&1&\dots&0&0\\
+ & & &\vdots & &\\
+ 0&0&0&\dots&1&0\\
+0&0&0&\dots&0&1
+\end{pmatrix}$$
+
+$$= 
+\begin{pmatrix} x_{1, 1} & \dots & x_{1, p}\\ & \vdots & \\ x_{n, 1} & \dots & x_{n, p} \end{pmatrix} $$
+
+In R you can form an identity matrix as follows:
+
+```{r eval=T}
+n <- 3 #pick dimensions
+I <- diag(n); I
+A %*% I; I %*% A
+```
+
+## Vectors, Matrices, and Scalars
+
+Let's look at this notation deeper. In the Baseball player data, there are 3 quantitative variables: `Heights`, `Weight`, and `Age`. Suppose the variable `Weight` is represented as a `response` $Y_1, \dots, Y_n$ random vector.
+
+We can examine player's `Weight` as a function of `Age` and `Height`. 
+
+```{r eval=T}
+# Data: https://umich.instructure.com/courses/38100/files/folder/data   (01a_data.txt)
+data <- read.table('https://umich.instructure.com/files/330381/download?download_frd=1', as.is=T, header=T)    
+attach(data)
+head(data)
+```
+
+We can also use just one symbol. We usually use bold to distinguish it from the individual entries:
+
+$$ \mathbf{Y} = 
+\begin{pmatrix}
+Y_1\\
+Y_2\\
+\vdots\\
+Y_n
+\end{pmatrix}
+$$
+
+
+The default representation of data vectors is as columns, i.e., we have dimension $n\times 1$, as opposed to $1 \times n$ rows.
+
+Similarly, we can use math notation to represent the covariates or predictors: `Age` and `Height`. In a case with two predictors, we can represent them like this:
+
+$$ 
+\mathbf{X}_1 = \begin{pmatrix}
+x_{1, 1}\\
+\vdots\\
+x_{n, 1}
+\end{pmatrix} \mbox{ and }
+\mathbf{X}_2 = \begin{pmatrix}
+x_{1, 2}\\
+\vdots\\
+x_{n, 2}
+\end{pmatrix}
+$$
+
+Note that for the Baseball player example $x_{1, 1}= Age_1$ and $x_{i, 1}=Age_i$ with $Age_i$ representing the `Age` of the i-th player. Similarly for $x_{i, 2}= Height_i$, the height of the i-th player. These vectors are also thought of as $n\times 1$ matrices.
+
+It is convenient to represent these covariates as matrices:
+
+$$ 
+\mathbf{X} = [ \mathbf{X}_1 \mathbf{X}_2 ] = \begin{pmatrix}
+x_{1, 1}&x_{1, 2}\\
+\vdots\\
+x_{n, 1}&x_{n, 2}
+\end{pmatrix}
+$$
+
+This matrix has dimension $n \times 2$. We can create this matrix in R this way:
+
+```{r eval=T}
+
+X <- cbind(Age, Height)
+head(X)
+dim(X)
+```
+
+We can also use this notation to denote an arbitrary number of covariates ($k$) with the following $n\times k$ matrix:
+
+$$
+\mathbf{X} = \begin{pmatrix}
+  x_{1, 1}&\dots & x_{1, k} \\
+  x_{2, 1}&\dots & x_{2, k} \\
+   & \vdots & \\
+  x_{n, 1}&\dots & x_{n, k} 
+  \end{pmatrix}
+$$
+
+You can simulate such matrix in R now using `matrix` instead of `cbind`:
+
+```{r eval=T}
+n <- 1034; k <- 5
+X <- matrix(1:(n*k), n, k)
+head(X)
+dim(X)
+```
+
+By default, the matrices are filled column-by-column order, but using `byrow=TRUE` argument allows us to change the order to row-by-row:
+
+```{r eval=T}
+n <- 1034; k <- 5
+X <- matrix(1:(n*k), n, k, byrow=TRUE)
+head(X)
+dim(X)
+```
+
+A scalar is just a univariate number, which is different from vectors and matrices, denoted usually by lower case not bolded letters. 
+
+
+## Sample Statistics (mean, variance, etc.)
+
+### Mean
+To compute the sample average and variance of a dataset, we use the formulas:
+$$\bar{Y}=\frac{1}{n} \sum_{i=1}^n {Y_i}$$ 
+and 
+$$\mbox{var}(Y)=\frac{1}{n-1} \sum_{i=1}^n {(Y_i - \bar{Y})}^2, $$
+which can be represented as matrix multiplications. 
+
+Define an $n \times 1$ matrix made of $1$'s:
+
+$$
+A=\begin{pmatrix}
+1\\
+1\\
+\vdots\\
+1
+\end{pmatrix}
+$$
+
+This implies that:
+
+$$
+\frac{1}{n}
+\mathbf{A}^\top Y = \frac{1}{n}
+\begin{pmatrix}1&1& \dots&1\end{pmatrix}
+\begin{pmatrix}
+Y_1\\
+Y_2\\
+\vdots\\
+Y_n
+\end{pmatrix}=
+\frac{1}{n} \sum_{i=1}^n {Y_i}= \bar{Y}
+$$
+
+Note that we are multiplying matrices by scalars, like $\frac{1}{n}$, by `*`, whereas we multiply matrices using `%*%`:
+
+```{r, message=FALSE}
+# Using the Baseball dataset
+y <- data$Height
+print(mean(y))
+
+n <- length(y)
+Y<- matrix(y, n, 1)
+A <- matrix(1, n, 1)
+barY=t(A)%*%Y / n
+
+print(barY)
+# double-check the result
+mean(data$Height)
+```
+
+**Note**: Multiplying the transpose of a matrix with another matrix is very common in statistical computing and modeling and there is a function in R, `crossprod`:
+
+```{r eval=T}
+barY=crossprod(A, Y) / n
+print(barY)
+```
+
+### Variance
+
+For the variance, we note that if:
+
+$$
+\mathbf{Y'}\equiv \begin{pmatrix}
+Y_1 - \bar{Y}\\
+\vdots\\
+Y_n - \bar{Y}
+\end{pmatrix}, \, \, 
+\frac{1}{n-1} \mathbf{Y'}^\top\mathbf{Y'} = 
+\frac{1}{n-1}\sum_{i=1}^n (Y_i - \bar{Y})^2
+$$
+
+An `crossprod` with only one matrix input computes: $Y'^\top Y'$ so we can simply type:
+
+```{r eval=T}
+Y1 <- y - mean(y)
+crossprod(Y1)/(n-1)  # Y1.man <- (1/(n-1))* t(Y1) %*% Y1
+
+# Check the result
+var(y)
+```
+
+
+### Applications of Matrix Algebra: Linear modeling
+
+Let's use these matrices:
+ 
+$$
+\mathbf{Y} = \begin{pmatrix}
+Y_1\\
+Y_2\\
+\vdots\\
+Y_n
+\end{pmatrix}
+, 
+\mathbf{X} = \begin{pmatrix}
+1&x_1\\
+1&x_2\\
+\vdots\\
+1&x_n
+\end{pmatrix}
+, 
+\mathbf{\beta} = \begin{pmatrix}
+\beta_0\\
+\beta_1
+\end{pmatrix} \mbox{ and }
+\mathbf{\varepsilon} = \begin{pmatrix}
+\varepsilon_1\\
+\varepsilon_2\\
+\vdots\\
+\varepsilon_n
+\end{pmatrix}
+$$
+
+Then we can write a linear model:
+
+$$ Y_i = \beta_0 + \beta_1 x_i + \varepsilon_i, i=1, \dots, n$$
+
+as: 
+
+$$
+\begin{pmatrix}
+Y_1\\
+Y_2\\
+\vdots\\
+Y_n
+\end{pmatrix} = 
+\begin{pmatrix}
+1&x_1\\
+1&x_2\\
+\vdots\\
+1&x_n
+\end{pmatrix}
+\begin{pmatrix}
+\beta_0\\
+\beta_1
+\end{pmatrix} +
+\begin{pmatrix}
+\varepsilon_1\\
+\varepsilon_2\\
+\vdots\\
+\varepsilon_n
+\end{pmatrix}
+$$
+
+or simply: 
+$$ \mathbf{Y}=\mathbf{X}\boldsymbol{\beta}+\boldsymbol{\varepsilon}$$
+
+which is a  simpler way to write the same model equation. 
+
+As, the optimal solution is achieved when all residuals ($\epsilon_i$) are as small as possible (indicating a good model fit), the least squares (LS) solution to this matrix equation ($Y=X\beta+\epsilon$) can be obtained by minimizing the residual square error $$ <\epsilon^T, \epsilon> = (Y-X\beta)^T \times(Y-X\beta).$$ 
+
+Let's define the objective function using cross-product notation:
+
+$$
+f(\beta) = (\mathbf{Y}-\mathbf{X}\boldsymbol{\beta})^\top
+(\mathbf{Y}-\mathbf{X}\boldsymbol{\beta})
+$$
+
+We can determine the values of $\beta$ by minimizing this expression, using calculus to find the minimum of the cost (objective) function ($f(\beta)$). 
+
+### Finding function extrema (min/max) using calculus
+
+There are a series of rules that permit us to solve partial derivative equations in matrix notation. By equating the derivative of a cost function to $0$ and solving for the unknown parameter $\beta$, we obtain candidate solution(s). The derivative of the above equation is:
+
+$$2 \mathbf{X}^\top (\mathbf{Y} - \mathbf{X} \boldsymbol{\hat{\beta}})=0$$
+
+$$\mathbf{X}^\top \mathbf{X} \boldsymbol{\hat{\beta}} = \mathbf{X}^\top \mathbf{Y}$$
+
+$$\boldsymbol{\hat{\beta}} = (\mathbf{X}^\top \mathbf{X})^{-1} \mathbf{X}^\top \mathbf{Y},$$
+
+which is the desired solution. Hat notation is used to denote estimates. For instance, the solution for the unknown $\beta$ parameters is denoted by the (data-driven) estimate $\hat{\beta}$.
+
+The least squares minimization works because minimizing a function corresponds to finding the roots of it's (first) derivative. In the ordinary least squares (OLS) we square the residuals:
+$$ (\mathbf{Y}-\mathbf{X}\boldsymbol{\beta})^\top
+(\mathbf{Y}-\mathbf{X}\boldsymbol{\beta}).$$ 
+
+Notice that the minimum of $f(x)$ and $f^2(x)$ are achieved at the same roots of $f'(x)$, as the derivative of $f^2(x)$ is $2f(x)f'(x)$. 
+
+### Least Square Estimation
+
+```{r eval=T}
+#x=cbind(data$Height, data$Age)
+x=data$Height
+y=data$Weight
+X <- cbind(1, x) 
+beta_hat <- solve( t(X) %*% X ) %*% t(X) %*% y 
+###or
+beta_hat <- solve( crossprod(X) ) %*% crossprod( X, y ) 
+```
+
+Now we can see the results of this by computing the estimated $\hat{\beta}_0+\hat{\beta}_1 x$ for any value of $x$:
+
+```{r eval=T}
+newx <- seq(min(x), max(x), len=100)
+X <- cbind(1, newx)
+fitted <- X%*%beta_hat
+plot(x, y, xlab="MLB Player's Height", ylab="Playeer's Weight")
+lines(newx, fitted, col=2)
+```
+
+$\hat{\boldsymbol{\beta}}=(\mathbf{X}^\top \mathbf{X})^{-1} \mathbf{X}^\top \mathbf{Y}$ is one of the most widely used results in data analysis. One of the advantages of this approach is that we can use it in many different situations. 
+
+### The R `lm` Function
+R has a very convenient function that fits these models. We will learn more about this function later, but here is a preview:
+
+```{r eval=T}
+# X <- cbind(data$Height, data$Age) # more complicated model
+X <- data$Height    # simple model
+y <- data$Weight
+fit <- lm(y ~ X)
+```
+
+Note that we obtain the same values as above.
+
+#Eigenvalues and Eigenvectors
+
+*Eigen-spectrum* decomposition of linear operators (matrices) into *eigen-values* and *eigen-vectors* enables us to easily understand linear transformations. The eigen-vectors represent the "axes" (directions) along which a linear transformation acts by *stretching, compressing* or *flipping*. And the eigenvalues represent the amounts of this linear transformation into the specified eigen-vector direction. In higher dimensions, there are more directions along which we need to understand the behavior of the linear transformation. The eigen-spectrum makes it easier to understand the linear transformation especially when many (all?) of the eigenvectors are linearly independent (orthogonal).
+
+For matrix **A** if we have $A\vec{v}=\lambda \vec{v}$ then we say $\vec{v}$(a non-zero vector) is a right eigenvector of matrix A and the scale factor $\lambda$ is the eigenvalue corresponding to that eigenvector.
+
+With some calculations we know that $A\vec{v}=\lambda \vec{v}$ is the same as $(\lambda I_n-A)\vec{v}=\vec{0}$. Here $I_n$ is the $n\times n$ identity matrix. So when we solve this equation we get our eigenvalues and eigenvectors. Thankfully, we don't need to do that by hand. `eigen()` function in R will help us to do the calculations.
+
+```{r eval=T}
+m11<-diag(nrow = 2, ncol=2)
+m11
+eigen(m11)
+```
+We can use R to prove that $(\lambda I_n-A)\vec{v}=\vec{0}$.
+```{r eval=T}
+(eigen(m11)$values*diag(2)-m11)%*%eigen(m11)$vectors
+```
+As we mentioned earlier, `diag(n)` creates a $n\times n$  identity matrix. Thus, `diag(2)` is the $I_2$ matrix in the equation. The output zero matrix proves that the equation $(\lambda I_n-A)\vec{v}=\vec{0}$ holds true.
+
+Many interesting [applications of the eigen-spectrum are shown here](https://en.wikipedia.org/wiki/Eigenvalues_and_eigenvectors#Applications).
+
+# Other important functions
+
+Other important functions about matrix operation are listed in the following table.
+
+Functions              | Math expression or explanation
+-----------------------|---------------------------------------------
+`crossprod(A, B)`       | $A^TB$ Where $A$, $B$ are matrices
+`y<-svd(A)`            | the output has the following components 
+   -`y$d`              | vector containing the singular values of A, 
+   -`y$u`              | matrix with columns contain the left singular vectors of A, 
+   -`y$v`              | matrix with columns contain the right singular vectors of A  
+`k <- qr(A)`           | the output has the following components 
+   -`k$qr`             | has an upper triangle that contains the decomposition and a lower triangle that contains information on the Q decomposition.
+   -`k$rank`           |  is the rank of A. 
+   -`k$qraux`          |  a vector which contains additional information on Q. 
+   -`k$pivot`          |  contains information on the pivoting strategy used. 
+`rowMeans(A)`/`colMeans(A)`|  returns vector of row/column means
+`rowSums(A)`/`colSums(A)`   |  returns vector of row/column sums
+
+#Matrix notation
+
+Some flexible matrix operations can help us save time calculating row or column averages. For example, column averages can be calculated by the following matrix operation.
+$$AX=
+\left(\begin{array}{cccc} 
+\frac{1}{N}&\frac{1}{N}&...&\frac{1}{N}
+\end{array}\right)
+\left(\begin{array}{cccc} 
+X_{1, 1}&...&X_{1, p}\\
+X_{2, 1}&...&X_{2, p}\\
+...&...&...&...\\
+X_{N, 1}&...&X_{N, p}
+\end{array}\right)=
+\left(\begin{array}{cccc} 
+\bar{X}_1&\bar{X}_2&...&\bar{X}_N
+\end{array}\right)
+$$
+While row averages can be calculated by the next operation:
+$$
+XB=
+\left(\begin{array}{cccc} 
+X_{1, 1}&...&X_{1, p}\\
+X_{2, 1}&...&X_{2, p}\\
+...&...&...&...\\
+X_{N, 1}&...&X_{N, p}
+\end{array}\right)
+\left(\begin{array}{c} 
+\frac{1}{p}\\
+\frac{1}{p}\\
+...\\
+\frac{1}{p}
+\end{array}\right)=
+\left(\begin{array}{c} 
+\bar{X}_1\\
+\bar{X}_2\\
+...\\
+\bar{X}_q
+\end{array}\right)
+$$
+We can see that fast calculations can be done by multiplying a matrix in the front or at the back of the original feature matrix. In general multiplying a vector in front can give us the following equation.
+$$AX=
+\left(\begin{array}{cccc} 
+a_1&a_2&...&a_N
+\end{array}\right)
+\left(\begin{array}{cccc} 
+X_{1, 1}&...&X_{1, p}\\
+X_{2, 1}&...&X_{2, p}\\
+...&...&...&...\\
+X_{N, 1}&...&X_{N, p}
+\end{array}\right)=
+\left(\begin{array}{cccc} 
+\sum_{i=1}^N a_i \bar{X}_{i, 1}&\sum_{i=1}^N a_i \bar{X}_{i, 2}&...&\sum_{i=1}^N a_i \bar{X}_{i, N}
+\end{array}\right)
+$$
+
+Now let's do an example to practice matrix notation. We use the genetic expression data including 8793 different genes and 208 subjects.
+These gene expression data represents a microarray experiment - GSE5859 - comparing [Gene Expression Profiles from Lymphoblastoid cells](http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE5859). Specifically, the data compares the expression level of genes in lymphoblasts from individuals in three HapMap populations {CEU, CHB, JPT}. The study found that more than 1K genes were significantly different (a<0.05) in mean expression level between the {CEU} and {CHB+JPT} samples.
+
+The [gene expression profiles data](https://umich.instructure.com/courses/38100/files/folder/Case_Studies/CaseStudy16_GeneExpression_GSE5859) has two components:
+
+* The [gene expression intensities](https://umich.instructure.com/files/2001417/download?download_frd=1) (exprs_GSE5859.csv): rows represent features on the microarray (e.g., genes), and columns represent different microarray samples, and 
+* [Meta-data about each of the samples](https://umich.instructure.com/files/2001418/download?download_frd=1) (exprs_MetaData_GSE5859.csv) rows represent samples, and	columns represent meta-data (e.g., sex, age, treatment status, the date the sample processing).
+```{r eval=T}
+gene<-read.csv("https://umich.instructure.com/files/2001417/download?download_frd=1", header = T) # exprs_GSE5859.csv
+info<-read.csv("https://umich.instructure.com/files/2001418/download?download_frd=1", header=T)  # exprs_MetaData_GSE5859.csv
+```
+
+Like `lapply()` function that we will talk about in [Chapter 6](http://www.socr.umich.edu/people/dinov/courses/DSPA_notes/06_LazyLearning_kNN.html). `sapply()` function can be used to calculate column and row averages. Let's compare the output by `sapply` and the matrix.
+
+```{r eval=T}
+colmeans<-sapply(gene[, -1], mean)
+gene1<-as.matrix(gene[, -1])
+# can also use built in funcitons
+# colMeans <- colMeans(gene1)
+colmeans.matrix<-crossprod(rep(1/nrow(gene1), nrow(gene1)), gene1)
+colmeans[1:15]
+colmeans.matrix[1:15]
+```
+
+We got the same output. Here we use `rep(1/nrow(gene1), nrow(gene1))` to create the vector
+$$
+\left(\begin{array}{cccc} 
+\frac{1}{N}&\frac{1}{N}&...&\frac{1}{N}
+\end{array}\right)
+$$
+to get the column averages. We are able to visualize the column means too.
+
+```{r eval=T}
+colmeans<-as.matrix(colmeans)
+hist(colmeans)
+```
+
+The histogram shows that the distribution is roughly normal.
+
+We can address harder problems using matrix notation. For example, let's calculate the differences between genders for each gene. First, we need to get the gender information for each subject. 
+```{r eval=T}
+gender<-info[, c(3, 4)]
+rownames(gender)<-gender$filename
+```
+Then we have to reorder the columns to make it consistent with the feature matrix `gene1`.
+
+```{r eval=T}
+gender<-gender[colnames(gene1), ]
+```
+
+After that, we are going to design the matrix. We want to multiply it with the feature matrix. The plan is to multiply the following two matrices.
+$$
+\left(\begin{array}{cccc} 
+X_{1, 1}&...&X_{1, p}\\
+X_{2, 1}&...&X_{2, p}\\
+...&...&...&...\\
+X_{N, 1}&...&X_{N, p}
+\end{array}\right)
+\left(\begin{array}{cc} 
+\frac{1}{p}&a_1\\
+\frac{1}{p}&a_2\\
+...&...\\
+\frac{1}{p}&a_p
+\end{array}\right)=
+\left(\begin{array}{cc} 
+\bar{X}_1&gender.diff_1\\
+\bar{X}_2&gender.diff_2\\
+...&...\\
+\bar{X}_q&gender.diff_N
+\end{array}\right)
+$$
+Where $a_i=-1/N_F$ if the subject is female and  $a_i=1/N_M$ if the subject is male. Thus, we gave each female and male the same weight before the subtraction. We average each gender and get their difference. $\bar{X}_i$ is the average across both gender and $gender.diff_i$ represents the gender difference for the *i*-th gene.
+
+```{r eval=T}
+table(gender$sex)
+gender$vector<-ifelse(gender$sex=="F", -1/86, 1/122)
+vec1<-as.matrix(data.frame(rowavg=rep(1/ncol(gene1), ncol(gene1)), gender.diff=gender$vector))
+gender.matrix<-gene1%*%vec1
+gender.matrix[1:15, ]
+```
+
+# Linear regression
+As we mentioned earlier, the formula for linear regression can be written as
+$$Y_i=\beta_0+X_{i, 1}\beta_1+...+X_{i, p}\beta_p +\epsilon_i, i=1, ..., N$$
+We can rewrite this in matrix form.
+$$
+\left(\begin{array}{c} 
+Y_1\\
+Y_2\\
+...\\
+Y_N
+\end{array}\right)=
+\left(\begin{array}{c} 
+1\\
+1\\
+...\\
+1
+\end{array}\right)\beta_0+
+\left(\begin{array}{c} 
+X_{1, 1}\\
+X_{2, 1}\\
+...\\
+X_{N, 1}
+\end{array}\right)\beta_1+...+
+\left(\begin{array}{c} 
+X_{1, p}\\
+X_{2, p}\\
+...\\
+X_{N, p}
+\end{array}\right)\beta_p+
+\left(\begin{array}{c} 
+\epsilon_1\\
+\epsilon_2\\
+...\\
+\epsilon_N
+\end{array}\right)
+$$
+Which is the same as $Y=X\beta +\epsilon$ or
+$$
+\left(\begin{array}{c} 
+Y_1\\
+Y_2\\
+...\\
+Y_N
+\end{array}\right)=
+\left(\begin{array}{cccc} 
+1&X_{1, 1}&...&X_{1, p}\\
+1&X_{2, 1}&...&X_{2, p}\\
+...&...&...&...\\
+1&X_{N, 1}&...&X_{N, p}
+\end{array}\right)
+\left(\begin{array}{c} 
+\beta_o\\
+\beta_1\\
+...\\
+\beta_p
+\end{array}\right)+
+\left(\begin{array}{c} 
+\epsilon_1\\
+\epsilon_2\\
+...\\
+\epsilon_N
+\end{array}\right)
+$$
+As $Y=X\beta +\epsilon$ implies that $X^TY \sim X^T(X\beta)=(X^TX)\beta$, and thus the solution for $\beta$ is obtained by multiplying both hand sides by $(X^TX)^{-1}$:
+$$\hat{\beta}=(X^TX)^{-1}X^TY$$
+
+Matrix calculation would be faster than fitting a regression. Let's apply this to the [Lahman baseball data](http://seanlahman.com/files/database/readme2014.txt) representing yearly stats and standings. Let's download it first via this link [baseball.data](https://umich.instructure.com/files/2018445/download?download_frd=1) and put it in the R working directory. We can use `load()` function to load local RData. For this example we subset the dataset by `G==162` and `yearID<2002`. Also, we create a new feature named `Singles` that is equal to `H(Hits by batters) - X2B(Doubles) - X3B(Tripples) - HR(Homeruns by batters)`. Finally, we only pick four features `R` (Runs scored), `Singles`, `HR` (Homeruns by batters) and `BB` (Walks by batters).
+
+```{r eval=T}
+
+#If you downloaded the .RData locally first, then you can easily load it into the R workspace by:
+# load("Teams.RData")
+
+# Alternatively you can also download the data in CSV format from https://umich.instructure.com/courses/38100/files/folder/data (teamsData.csv)
+Teams <- read.csv('https://umich.instructure.com/files/2798317/download?download_frd=1', header=T)
+
+dat<-Teams[Teams$G==162&Teams$yearID<2002, ]
+dat$Singles<-dat$H-dat$X2B-dat$X3B-dat$HR
+dat<-dat[, c("R", "Singles", "HR", "BB")]
+head(dat)
+```
+Now let's do a simple example. We pick `R` as the response variable and `BB` as the independent variable. Here we need to add a column of *1*'s to the $X$ matrix. 
+
+```{r eval=T}
+Y<-dat$R
+X<-cbind(rep(1, n=nrow(dat)), dat$BB)
+X[1:10, ]
+```
+Now we solve the betas by 
+$$\hat{\beta}=(X^TX)^{-1}X^TY$$
+```{r eval=T}
+beta<-solve(t(X)%*%X)%*%t(X)%*%Y
+beta
+```
+To examine this manual calculation, we refit the linear equation using `lm()` function. After comparing the time used for computations, we know that matrix calculation are more time efficient.
+
+```{r eval=T}
+fit<-lm(R~BB, data=dat)
+# fit<-lm(R~., data=dat) 
+# '.' indicates all other variables, very useful when fitting models with many predictors
+fit
+summary(fit)
+system.time(fit <- lm(R~BB, data=dat))
+system.time(beta1 <- solve(t(X)%*%X)%*%t(X)%*%Y)
+```
+
+We can also expand the model to include several predictors and compare the resulting estimates.
+
+```{r}
+X<-cbind(rep(1, n=nrow(dat)), dat$BB, dat$Singles, dat$HR)
+X[1:10, ]
+system.time(fit<-lm(R~BB+ Singles + HR, data=dat))
+system.time(beta2<-solve(t(X)%*%X)%*%t(X)%*%Y)
+
+fit$coefficients; t(beta2)
+```
+
+We can visualize the relationship between `R` and `BB` by drawing a scatter plot.
+
+```{r eval=T}
+plot(dat$BB, dat$R, xlab = "BB", ylab = "R", main = "Scatter plot/regression for baseball data")
+abline(beta1[1, 1], beta1[2, 1], lwd=4, col="red")
+```
+
+Here the red line is our regression line calculated by matrix calculation.
+
+Matrix calculation can still work if we have multiple independent variables. Now we will add variable `HR` to the model.
+```{r eval=T}
+X<-cbind(rep(1, n=nrow(dat)), dat$BB, dat$HR)
+beta<-solve(t(X)%*%X)%*%t(X)%*%Y
+beta
+#install.packages("scatterplot3d")
+library(scatterplot3d)
+myScatter3D <- scatterplot3d(dat$BB, dat$HR, dat$R)
+
+fit = lm(dat$R ~ dat$BB + dat$HR, data = dat)
+# Plot the linear model
+# get the BB & HR ranges summary(dat$BB); summary(dat$HR)
+cf = fit$coefficients
+pltx = seq(344, 775,length.out = 100)
+plty = seq(11,264,length.out = 100)
+pltz = cf[1] + cf[2]*pltx + cf[3]*plty
+#Add the line to the plot
+myScatter3D$points3d(pltx,plty,pltz, type = "l", col = "red", lwd=3)
+
+# interactive *rgl* 3D plot
+library(rgl)
+fit <- lm(dat$R ~ dat$BB + dat$HR)
+coefs <- coef(fit)
+a <- coefs["dat$BB"]
+b <- coefs["dat$HR"]
+c <- -1
+d <- coefs["(Intercept)"]
+open3d()
+plot3d(dat$BB,  dat$HR, dat$R, type = "s", col = "red", size = 1)
+planes3d(a, b, c, d, alpha = 0.5)
+# planes3d(b, a, -1.5, d, alpha = 0.5)
+# planes3d draws planes using the parametrization a*x + b*y + c*z + d = 0.
+# Multiple planes may be specified by giving multiple values for the normal
+# vector (a, b, c) and the offset parameter d
+
+pca1 <- prcomp(as.matrix(cbind(dat$BB,  dat$HR, dat$R)), center = T); summary(pca1)
+
+# Given two vectors PCA1 and PCA2, the cross product V = PCA1 x PCA2 
+# is orthogonal to both A and to B, and a normal vector to the 
+# plane containing PCA1 and PCA2
+# If PCA1 = (a,b,c) and PCA2 = (d, e, f), then the cross product is
+# PCA1 x PCA2 =  (bf - ce, cd - af, ae - bd)
+# PCA1 = pca1$rotation[,1] and PCAS2=pca1$rotation[,2]
+# https://en.wikipedia.org/wiki/Cross_product#Names
+# prcomp$rotation contains the matrix of variable loadings, 
+# i.e., a matrix whose columns contain the eigenvectors
+#normVec = c(pca1$rotation[,1][2]*pca1$rotation[,2][3]-
+#              pca1$rotation[,1][3]*pca1$rotation[,2][2],
+#            pca1$rotation[,1][3]*pca1$rotation[,2][1]-
+#              pca1$rotation[,1][1]*pca1$rotation[,2][3],
+#            pca1$rotation[,1][1]*pca1$rotation[,2][2]-
+#              pca1$rotation[,1][2]*pca1$rotation[,2][1]
+#            )
+normVec = c(pca1$rotation[2,1]*pca1$rotation[3,2]-
+                 pca1$rotation[3,1]*pca1$rotation[2,2],
+             pca1$rotation[3,1]*pca1$rotation[1,2]-
+                 pca1$rotation[1,1]*pca1$rotation[3,2],
+             pca1$rotation[1,1]*pca1$rotation[2,2]-
+                 pca1$rotation[2,1]*pca1$rotation[1,2]
+)
+
+# Plot the PCA Plane
+plot3d(dat$BB,  dat$HR, dat$R, type = "s", col = "red", size = 1)
+planes3d(normVec[1], normVec[2], normVec[3], 90, alpha = 0.5)
+```
+
+#Sample covariance matrix
+
+We can also obtain the covariance matrix for our features using matrix operation. Suppose
+$$X_{N\times K}=\left(\begin{array}{cccc} 
+X_{1, 1}&...&X_{1, K}\\
+X_{2, 1}&...&X_{2, K}\\
+...&...&...\\
+X_{N, 1}&...&X_{N, K}
+\end{array}\right)
+=[X_1, X_2, ..., X_N]^T. $$
+
+Then the covariance matrix is:
+$$\Sigma = (\Sigma_{i, j})$$
+where $\Sigma_{i, j}=Cov(X_i, X_j)=E\left( (X_i-\mu_i)(X_j-\mu_j)\right)$, $1\leq i, j, \leq N$.
+
+The sample covariance matrix is:
+$$\Sigma_{i, j}=\frac{1}{N-1}\sum_{m=1}^{N}\left(  x_{m, i}-\bar{x}_i \right)  \left( x_{m, j}-\bar{x}_j \right) , $$
+
+where 
+$$\bar{x}_{i}=\frac{1}{N}\sum_{m=1}^{N}x_{m, i}, \quad i=1, \ldots, K $$  
+
+In general, 
+$$\Sigma=\frac{1}{n-1}(X-\bar{X})^T(X-\bar{X})$$
+
+Assume we want to get the sample covariance matrix of the following $5*3$ feature matrix *x*.
+
+```{r eval=T}
+x<-matrix(c(4.0, 4.2, 3.9, 4.3, 4.1, 2.0, 2.1, 2.0, 2.1, 2.2, 0.60, 0.59, 0.58, 0.62, 0.63), ncol=3)
+x
+```
+Notice that we have *3* features and *5* observations in this matrix. Let's get the column means first.
+```{r eval=T}
+vec2<-matrix(c(1/5, 1/5, 1/5, 1/5, 1/5), ncol=5)
+#column means
+x.bar<-vec2%*%x
+x.bar
+```
+
+Then, we repeat each column mean *5* times to match the layout of feature matrix. Finally, we are able to plug everything in the formula above.
+
+```{r eval=T}
+x.bar<-matrix(rep(x.bar, each=5), nrow=5)
+S<-1/4*t(x-x.bar)%*%(x-x.bar)
+S
+```
+
+In the covariance matrix, `S[i, i]` is the variance of the *i*th feature and `S[i, j]` is the covariance of *i*th and *j*th features.
+
+Compare this to the automated calculation of the variance-covariance matrix.
+
+```{r eval=T}
+autoCov <- cov(x)
+autoCov
+```
+
+<!--html_preserve-->
+<div>
+    	<footer><center>
+			<a href="http://www.socr.umich.edu/">SOCR Resource</a>
+				Visitor number <img src="http://counter.digits.net/?counter=SOCR"
+	 			align="middle" border="0" height="20" hspace="4" vspace="2" width="60">
+				<script type="text/javascript">
+					var d = new Date();
+					document.write(" | " + d.getFullYear() + " | ");
+				</script> 
+				<a href="http://socr.umich.edu/img/SOCR_Email.png"><img alt="SOCR Email"
+	 			title="SOCR Email" src="http://socr.umich.edu/img/SOCR_Email.png"
+	 			style="border: 0px solid ;"></a>
+	 		 </center>
+	 	</footer>
+
+	<!-- Start of StatCounter Code -->
+		<script type="text/javascript">
+			var sc_project=5714596; 
+			var sc_invisible=1; 
+			var sc_partition=71; 
+			var sc_click_stat=1; 
+			var sc_security="038e9ac4"; 
+		</script>
+		
+		<script type="text/javascript" src="https://www.statcounter.com/counter/counter.js"></script>
+	<!-- End of StatCounter Code -->
+	
+	<!-- GoogleAnalytics -->
+		<script src="https://www.google-analytics.com/urchin.js" type="text/javascript"> </script>
+		<script type="text/javascript"> _uacct = "UA-676559-1"; urchinTracker(); </script>
+	<!-- End of GoogleAnalytics Code -->
+</div>
+<!--/html_preserve-->

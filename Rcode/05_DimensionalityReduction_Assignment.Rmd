@@ -1,0 +1,42 @@
+---
+title: "Data Science and Predictive Analytics (UMich HS650)"
+subtitle: "<h2><u>Assignment 5: Dimensionality Reduction</u></h2>"
+author: "<h3>SOCR/MIDAS (Ivo Dinov)</h3>"
+date: "`r format(Sys.time(), '%B %Y')`"
+tags: [DSPA, SOCR, MIDAS, Big Dta, Predictive Analytics] 
+output:
+  html_document:
+    theme: spacelab
+    highlight: tango
+    includes:
+      before_body: SOCR_header.html
+      after_body: SOCR_footer_tracker.html
+    toc: true
+    number_sections: true
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+---
+
+# Parkinson's Disease example
+Use Principal Component Analysis (PCA), Singular Value Decomposition (SVD), Independent component analysis(ICA), Factor analysis (FA) to reduce the dimensionality of the [PD data](http://wiki.socr.umich.edu/index.php/SOCR_Data_PD_BiomedBigMetadata). Interpret each of the results.
+
+# Allometric Relations in Plants example
+## Load data
+Load [Allometric Relations in Plants data](http://wiki.stat.ucla.edu/socr/index.php/SOCR_Data_Dinov_032708_AllometricPlanRels) and perform proper type conversion, e.g., convert "Province" and "Born".
+
+## Apply Principal Component Analysis:
+
+* Generate a data summary
+* Apply `factoextra` and compare it to the results of `prcomp` 
+* Report the rotations (scores) 
+* Show the scree plot 
+* Select the number of PCs and employ a bootstrap test 
+* Perform SVD and ICA and compare the results of PCA. 
+    * Use these three variables "L","M","D" to perform ICA and show pair-plots of before-ICA and after-ICA scatter in the data. `scatter3dplot()` may be helpful, which you saw in [Chapter 4](http://www.socr.umich.edu/people/dinov/2017/Spring/DSPA_HS650/notes/04_LinearAlgebraMatrixComputing.html)
+* Perform factor analysis
+    * Use `require(nFactors)` to determine the number of the factors and show a scree plot as stated in notes; 
+    * Use `factanal()` to apply FA and compare the rotation "varimax" and "promax"
+    * Report the loadings and consider an appropriate visualization method
+* Interpret the findings in the context of the case-study.

@@ -1,0 +1,72 @@
+---
+title: "Data Science and Predictive Analytics (UMich HS650)"
+subtitle: "<h2><u>Assignment 3: Data Visualization</u></h2>"
+author: "<h3>SOCR/MIDAS (Ivo Dinov)</h3>"
+date: "`r format(Sys.time(), '%B %Y')`"
+tags: [DSPA, SOCR, MIDAS, Big Dta, Predictive Analytics] 
+output:
+  html_document:
+    theme: spacelab
+    highlight: tango
+    includes:
+      before_body: SOCR_header.html
+      after_body: SOCR_footer_tracker.html
+    toc: true
+    number_sections: true
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+---
+
+# Common plots
+Use the [TBI dataset (CaseStudy11_TBI)](https://umich.instructure.com/courses/38100/files/folder/Case_Studies) to demonstrate some visualization plots - e.g., histograms, density plots, pie charts, heatmaps, barplots, and paired correlation plots.
+
+# Trees and Graphs
+Use the [SOCR Resource Hierachical Dataset (JSON)](http://socr.umich.edu/html/navigators/D3/xml/SOCR_HyperTree.json) or the [DSPA Dynamic Certificate Map (JSON)](view-source:http://www.socr.umich.edu/people/dinov/2017/Spring/DSPA_HS650//DSPA_SankeyCertificatePlanning/data/DSPA_Topics.json) to generate  tree/graph displays of the corresponding structural information contains in the JSON objects.
+
+<details>
+  <summary>Example of processing a JSON hierarchy</summary>
+  <p>
+    <code>
+    library(jsonlite)
+    library(RCurl)
+    library(data.tree)
+    url <- "http://socr.umich.edu/html/navigators/D3/xml/SOCR_HyperTree.json"
+    raw_data <- getURL(url)
+    document <- fromJSON(raw_data)
+    tree <- Node$new(document$name)
+    for(i in seq_len(length(document))) {
+      tree$AddChild(document$children$name[[i]])
+      for(j in seq_len(length(document$children$children[[i]]))) {
+        tree$children[[i]]$AddChild(document$children$children[[i]]$name[[j]])
+        for(k in seq_len(length(document$children$children[[i]]$children[[j]]))){
+          tree$children[[i]]$children[[j]]$AddChild((document$children$children[[i]]$children[[j]]$name[[k]]))
+        }
+      }
+    }
+    suppressMessages(library(igraph))
+    plot(as.igraph(tree, directed = T, direction = "climb"))
+    
+    suppressMessages(library(networkD3))
+    treenetwork <- ToDataFrameNetwork(tree, "name")
+    simpleNetwork(treenetwork, fontSize = 10)
+    </code>
+  </p>
+</details>
+
+# Data EDA examples
+
+* Use [SOCR_OilGasData](http://wiki.socr.umich.edu/index.php/SOCR_Data_Dinov_071108_OilGasData) to generate three individual bar plots for Fossil Fuels, Nuclear Electric Power and Renewable Energy respectively (Hint: you may use `ggplot` and `facet_grid`). Include two lines for Productions and Consumption. The x-axis should be time (you may use year as numeric type directly), draw consumption slightly wider and noticeable (e.g., using magenta color).
+
+* Use [SOCR_OzoneData](http://wiki.socr.umich.edu/index.php/SOCR_Data_121608_OzoneData) to generate a correlation plot with the variables "MTH_1", "MTH_2", ..., "MTH_12",. (Hint: you need obtain correlation matrix first, then apply corrplot package, try to use as more method as possible. E.g "circle", "pie", "mixed" etc.).
+
+* Use [SOCR_ CA_OzoneData](http://wiki.socr.umich.edu/index.php/SOCR_Data_121608_OzoneData) to generate a 3D surface plot (using variables Longitude, Latitude and O3).
+
+* Generate random numbers from `Cauchy` distribution. Draw a histogram and compare it with the histogram of normal distribution. What do you find? You may try different seeds to re-generate the Cauchy random numbers.
+
+* Use [SOCR_Data_PD_BiomedBigMetadata](http://wiki.socr.umich.edu/index.php/SOCR_Data_PD_BiomedBigMetadata) to generate a heatplot. Set `RowSideColors` and `ColSideColors` and use rainbow color.
+
+* Use [SOCR_Data_2011_US_JobsRanking](http://wiki.socr.umich.edu/index.php/SOCR_Data_2011_US_JobsRanking) to draw a scatter plot Overall_Score - Average_Income(USD). Specify title, legend, and axes labels. Then try `qplot` Overall_Score - Average_Income(USD), fill with the Stress_Level and size of points according to Hiring_Potential, label points with Job_Title.
+
+* Use [SOCR_TurkiyeStudentEvalData](http://wiki.socr.umich.edu/index.php/SOCR_TurkiyeStudentEvalData) to generate trees and graphs using `cutree()`. (use variables Q1 - Q28).

@@ -1,0 +1,441 @@
+---
+title: "Data Science and Predictive Analytics (UMich HS650)"
+subtitle: "<h2><u>Improving Model Performance</u></h2>"
+author: "<h3>SOCR/MIDAS (Ivo Dinov)</h3>"
+date: "`r format(Sys.time(), '%B %Y')`"
+tags: [DSPA, SOCR, MIDAS, Big Data, Predictive Analytics] 
+output:
+  html_document:
+    theme: spacelab
+    highlight: tango
+    includes:
+      before_body: SOCR_header.html
+    toc: true
+    number_sections: true
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+---
+
+We already explored several alternative machine learning (ML) methods for prediction, classification, clustering and outcome forecasting. In many situations, we derive models by estimating model coefficients or parameters. The main question now is *How can we adopt crowdsourcing advantages of social networks to aggregate different predictive analytics strategies?* 
+
+Are there reasons to believe that such **ensembles** of forecasting methods may actually improve the performance or boost the prediction accuracy of the resulting consensus meta-algorithm? In this chapter, we are going to introduce ways that we can search for optimal parameters for a single ML method as well as aggregate different methods into **ensembles** to augment their collective performance, relative to any of the individual methods part of the meta-algorithm.
+
+After we summarize the core methods, we will present automated and customized parameter tuning, and show strategies for improving model performance based on meta-learning via *bagging* and *boosting*.
+
+# Improving model performance by parameter tuning
+
+One of the methods for improving model performance relies on *tuning*. For a given ML technique, tuning is the process of searching through the parameter space, for the optimal parameter(s). The following table summarizes some of the parameters used in ML techniques we covered in previous chapters.
+
+**Model**                   | **Learning Task**   | **Method** | **Parameters**
+------------------------|-----------------|--------|----------------
+KNN	|Classification|	`class::knn`|	`data, k`
+K-Means	|Classification|	`stats::kmeans`|	`data, k`
+Naïve Bayes|	Classification|	`e1071::naiveBayes`|	`train, class, laplace`
+Decision Trees|	Classification|	`C50::C5.0`|	`train, class, trials, costs`
+OneR Rule Learner|	Classification|	`RWeka::OneR`|	`class~predictors, data`
+RIPPER Rule Learner|	Classification|	`RWeka::JRip`|	`formula, data, subset, na.action, control, options`
+Linear Regression|	Regression|	`stats::lm`|	`formula, data, subset, weights, na.action, method`
+Regression Trees|	Regression|	`rpart::rpart`|	`dep_var ~ indep_var, data`
+Model Trees|	Regression|	`RWeka::M5P`|	`formula, data, subset, na.action, control`
+Neural Networks|	Dual use|	`nnet::nnet`|	`x, y, weights, size, Wts, mask,linout, entropy, softmax, censored, skip, rang, decay, maxit, Hess, trace, MaxNWts, abstol, reltol`
+Support Vector Machines (Polynomial Kernel)|	Dual use|	`caret::train::svmLinear`|	`C`
+Support Vector Machines (Radial Basis Kernel)|	Dual use|	`caret::train::svmRadial`|	`C, sigma`
+Support Vector Machines (general)|	Dual use|	`kernlab::ksvm`|	`formula, data, kernel`
+Random Forests|	Dual use|	`randomForest::randomForest`|	`formula, data`
+
+$$\textbf{Table 1: Core parameters of several machine learning techniques.}$$
+
+#Using `caret` for automated parameter tuning
+
+In [Chapter 6](http://www.socr.umich.edu/people/dinov/courses/DSPA_notes/06_LazyLearning_kNN.html) we used KNN and plugged in random *k* parameters for the number of clusters. This time we will test simultaneously multiple *k* values and select the parameter(s) yielding the highest prediction accuracy. Using `caret` allows us to specify an outcome class variable, covariate predictor features, and a specific ML method. In [Chapter 6](http://www.socr.umich.edu/people/dinov/courses/DSPA_notes/06_LazyLearning_kNN.html), we showed the [Boys Town Study of Youth Development dataset](https://umich.instructure.com/files/399119/download?download_frd=1), where we normalized all the features, stored them in a `boystown_n` computable object, and defined an outcome class variable (`boystown$grade`). 
+
+```{r include=T, message=F}
+boystown<-read.csv("https://umich.instructure.com/files/399119/download?download_frd=1", sep=" ")
+boystown$sex<-boystown$sex-1
+boystown$dadjob<--1*(boystown$dadjob-2)
+boystown$momjob<--1*(boystown$momjob-2)
+boystown<-boystown[, -1]
+table(boystown$gpa)
+boystown$grade<-boystown$gpa %in% c(3, 4, 5)
+boystown$grade<-factor(boystown$grade, levels=c(F, T), labels = c("above_avg", "avg_or_below"))
+normalize<-function(x){
+  return((x-min(x))/(max(x)-min(x)))
+}
+boystown_n<-as.data.frame(lapply(boystown[, -11], normalize))
+```
+
+```{r}
+str(boystown_n)
+boystown_n<-cbind(boystown_n, boystown[, 11])
+str(boystown_n)
+colnames(boystown_n)[11]<-"grade"
+```
+
+Now that the dataset includes an explicit class variable and predictor features, we can use the KNN method to predict the outcome `grade`. Let's we plug this information into the `caret::train()` function. Note that `caret` can use the complete dataset as it will automatically do the random sampling for the internal statistical cross-validation. To make results reproducible, we may utilize the `set.seed()` function that we presented previously in [Chapter 13](http://www.socr.umich.edu/people/dinov/courses/DSPA_notes/13_ModelEvaluation.html).
+
+```{r message=F}
+library(caret)
+set.seed(123)
+kNN_mod <- train(grade~., data=boystown_n, method="knn")
+kNN_mod; summary(kNN_mod)
+```
+
+In this case, using `str(m)` to summarize the object `m` may report out too much information. Instead, we can simply type the object name `m`  to get a more concise information about it.
+
+1. Description about the dataset: number of samples, features, and classes.
+
+2. Re-sampling process: here it is using 25 bootstrap samples with 200 observations (same size as the observed dataset) each to train the model.
+
+3. Candidate models with different parameters that have been evaluated: by default, `caret` uses 3 different choices for each parameter, but for binary parameters, it only takes 2 choices `TRUE` and `FALSE`). As KNN has only one parameter *k*, we have 3 candidate models reported in the output above. 
+
+4. Optimal model: the model with largest accuracy is the one corresponding to `k=9`.
+
+Let's see how accurate this "optimal model" is in terms of the re-substitution error. Again, we will use the `predict()` function specifying the object `m` and the dataset `boystown_n`. Then, we can report the contingency table showing the agreement between the predictions and real class labels.
+
+```{r}
+set.seed(1234)
+pred <- predict(kNN_mod, boystown_n)
+table(pred, boystown_n$grade)
+```
+
+This model has $(17+2)/200=0.09$ re-substitution error (9%). This means that in the 200 observations that we used to train this model, 91% of them were correctly classified.  Note that re-substitution error is different from accuracy. The accuracy of this model is $0.81$, which is reported by a model summary call. As mentioned in [Chapter 13](http://www.socr.umich.edu/people/dinov/courses/DSPA_notes/13_ModelEvaluation.html), we can obtain prediction probabilities for each observation in the original `boystown_n` dataset.
+
+```{r}
+head(predict(kNN_mod, boystown_n, type = "prob"))
+```
+
+# Customizing the tuning process
+
+The default setting of `train()` might not meet the specific needs for every study. In our case, the optimal *k* might be smaller than $9$. The `caret` package allows us to customize the settings for `train()`. Specifically, `caret::trainControl()` can help us to customize re-sampling methods. There are 6 popular re-sampling methods that we might want to use, which are summarized in the following table.
+
+**Resampling method** |	**Method name**	| **Additional options and default values**
+----------------------|-----------------|-------------------------------------
+Holdout sampling|	`LGOCV`|	`p = 0.75` (training data proportion)
+k-fold cross-validation|	`cv`|	`number = 10` (number of folds)
+Repeated k-fold cross validation|	`repeatedcv`|	`number = 10` (number of folds), `repeats = 10` (number of iterations)
+Bootstrap sampling|	`boot`|	`number = 25` (resampling iterations)
+0.632 bootstrap|	`boot632`|	`number = 25` (resampling iterations)
+Leave-one-out cross-validation|	`LOOCV`|	None
+
+$$\textbf{Table 2: Core re-sampling methods.}$$
+
+Each of these methods rely on alternative representative sampling strategies to train the model. Let's use *0.632 bootstrap* for example. Just specify `method="boot632"` in the `trainControl()` function. The number of different samples to include can be customized by the `number=` option. Another option in `trainControl()` allows specification of the model performance evaluation. We can select a preferred method of evaluation for choosing the optimal model. For instance, the `oneSE` method chooses the simplest model within one standard error of the best performance to be the optimal model. Other strategies are also available in `caret` package. For detailed information, type `?best` in the R console. 
+
+We can also specify a list of *k* values we want to test by creating a matrix or a grid. 
+
+```{r}
+ctrl<-trainControl(method = "boot632", number=25, selectionFunction = "oneSE")
+grid<-expand.grid(k=c(1, 3, 5, 7, 9)) 
+# Creates a data frame from all combinations of the supplied factors
+```
+
+Usually, to avoid ties, we prefer to choose an odd number of clusters $k$. Now the constraints are all set. We can start to select models again using `train()`.
+
+```{r}
+set.seed(123)
+kNN_mod2 <-train(grade ~ ., data=boystown_n, method="knn", 
+         metric="Kappa", 
+         trControl=ctrl, 
+         tuneGrid=grid)
+kNN_mod2
+```
+
+Here we added `metric="Kappa"` to include the *Kappa statistics* as one of the criteria to select the optimal model. We can see the output accuracy for all the candidate models are better than the default bootstrap sampling. The optimal model has *k=1*, a high accuracy $0.861$, and a high Kappa statistics, which is much better than the model we had in [Chapter 6](http://www.socr.umich.edu/people/dinov/courses/DSPA_notes/06_LazyLearning_kNN.html). Note that the output based on the SE rule may not necessarily chose the model with the highest accuracy or the highest Kappa statistic as the "optimal model". The tuning process is a more comprehensive than only looking at one statistic.
+
+# Improving model performance with meta-learning
+
+*Meta-learning* involves building and ensembling multiple learners relying either on single or multiple learning algorithms. Meta-learners combine the outputs of several techniques and report consensus results that are more reliable, in general. 
+
+For example, to decrease the [*variance* (bagging) or *bias* (boosting)](http://wiki.socr.umich.edu/index.php/SMHS_BiasPrecision), **random forest** attempts in two steps to correct the general decision trees' trend to overfit the model to the training set:
+
+1. Step 1: producing a distribution of simple ML models on subsets of the original data.
+
+2. Step 2: combine the distribution into one "aggregated" model.
+
+Before stepping into the details, let's briefly summarize:
+
+* *Bagging* (stands for Bootstrap Aggregating) is the way to decrease the variance of your prediction by generating additional data for training from your original dataset using combinations with repetitions to produce multiple samples of the same cardinality/size as your original data. We can't expect to improve the model predictive power by synthetically increasing the size of the training set, however we may decrease the variance by narrowly tuning the prediction to the expected outcome.
+
+* *Boosting* is a two-step approach that aims to reduce bias in parameter estimation. First, we use subsets of the original data to produce a series of moderately performing models and then "boosts" their performance by combining them together using a particular cost function (e.g., Accuracy). Unlike bagging, in classical boosting, the subset creation is not random and depends upon the performance of the previous models: every new subset contains the elements that were (likely to be) misclassified by previous models. Usually, we prefer weaker classifiers in boosting. For example, a prevalent choice is to use stump (level-one decision tree) in AdaBoost (Adaptive Boosting).
+
+## Bagging
+
+One of the most well-known meta-learning method is bootstrap aggregating or *bagging*. It builds multiple models with bootstrap samples using a single algorithm. The models' predictions are combined with voting (for classification) or averaging (for numeric prediction). Voting means the bagging model's prediction is based on the majority of learners' prediction for a class. Bagging is especially good with unstable learners like decision trees or SVM models.
+
+To illustrate the Bagging method we will again use the Quality of life and chronic disease dataset we saw in [Chapter 8](http://www.socr.umich.edu/people/dinov/courses/DSPA_notes/08_DecisionTreeClass.html). Just like we did in the second practice problem in [Chapter 10](http://www.socr.umich.edu/people/dinov/courses/DSPA_notes/10_ML_NN_SVM_Class.html), we will use `CHARLSONSCORE` as the class label, which has 11 different classes.
+
+```{r}
+qol<-read.csv("https://umich.instructure.com/files/481332/download?download_frd=1")
+qol<-qol[!qol$CHARLSONSCORE==-9 , -c(1, 2)]
+qol$CHARLSONSCORE<-as.factor(qol$CHARLSONSCORE)
+```
+
+To apply `bagging()`, we need to download the `ipred` package first. After loading the package, we build a bagging model with `CHARLSONSCORE` as class label and all other variables in the dataset as predictors. We can specify the number of voters (decision tree models we want to have), which defaults to 25.
+
+```{r}
+# install.packages("ipred")
+library(ipred)
+set.seed(123)
+mybag<-bagging(CHARLSONSCORE ~ ., data=qol, nbagg=25)
+```
+
+The result, `mybag`, is a complex class object that includes `y` (vector of responses), `X` (data frame of predictors), `mtrees` (multiple trees as a list of length *nbagg* containing the trees for each bootstrap sample, `OOB` (logical indicating whether the out-of-bag estimate should be computed), `err` error	(if OOB=TRUE, the out-of-bag estimate of misclassification or root mean squared error or the Brier score for censored data), and comb	(Boolean indicating whether a combination of models was requested).
+
+Now we shall use `predict()` function to apply this model for prediction. For evaluation purposes, we create a table to inspect the re-substitution error.
+
+```{r}
+bt_pred<-predict(mybag, qol)
+agreement<-bt_pred==qol$CHARLSONSCORE
+prop.table(table(agreement))
+```
+
+This model works very well with its training data. It labeled 99.8% of the cases correctly. To see its performances on feature data, we apply the `caret` `train()` function again with 10 repeated CV as re-sampling method. In `caret`, bagged trees method is called `treebag`.
+
+```{r}
+library(caret)
+set.seed(123)
+ctrl<-trainControl(method="repeatedcv", number = 10, repeats = 10)
+train(CHARLSONSCORE~., data=as.data.frame(qol), method="treebag", trControl=ctrl)
+```
+
+Well, we got a very marginal accuracy of 52% and a fair Kappa statistics. This result is better than we got back in [Chapter 10](http://www.socr.umich.edu/people/dinov/courses/DSPA_notes/10_ML_NN_SVM_Class.html) using the `ksvm()` function alone (~50%). Here we combined the prediction results of 38 decision trees to get this accuracy. It seems that we can't forecast `CHARLSONSCORE` too well, however other QoL outcomes may have higher prediction accuracy. For instance, we may predict `QOL_Q_01` with  $accuracy=0.6$ and $\kappa=0.42$.
+
+```{r eval=F}
+set.seed(123)
+ctrl<-trainControl(method="repeatedcv", number = 10, repeats = 10)
+train(as.factor(QOL_Q_01) ~ . , data=as.data.frame(qol), method="treebag", trControl=ctrl)
+```
+
+In addition to decision tree classification, `caret` allows us to explore alternative `bag()` functions. For instance, instead of bagging based on decision trees, we can bag using a SVM model. `caret` provides a nice setting for SVM training, making predictions and counting votes in a list object `svmBag`. We can examine these objects by using the `str()` function.
+
+```{r}
+str(svmBag)
+```
+
+Clearly, `fit` provides the training functionality, `pred` the prediction and forecasting on new data, and `aggregate` is a way to combine many models and achieve voting-based consensus. Using the member operator, the $ \$ $ sign, we can explore these three types of elements of the `svmBag` object. For instance, the `fit` element may be extracted from the SVM object by:
+
+```{r}
+svmBag$fit
+```
+
+The SVM bag `fit` relies on the `kernlab::ksvm()` function. The other two methods, `pred` and `aggregate`, may be explored in a similar way. They follow the SVM model building and testing process we discussed in [Chapter 10](http://www.socr.umich.edu/people/dinov/courses/DSPA_notes/10_ML_NN_SVM_Class.html). 
+
+This `svmBag` object could be used as an optional setting in the `train()` function. However, this option requires that all features are linearly independent, which may be rare in real world data. 
+
+```{r include=F, eval=F}
+bagctrl<-bagControl(fit=svmBag$fit, predict = svmBag$pred, aggregate=svmBag$aggregate)
+qol.rand<-qol[order(runif(2328)), ]
+set.seed(123)
+svmbag<-train(grade~., data=boystown_n, "bag", trControl=ctrl, bagControl=bagctrl)
+svmbag
+```
+
+## Boosting
+
+*Bagging* uses equal weights for all learners we include in the model. *Boosting* is different as it employs non-uniform weights. Suppose we have the first learner correctly classifying 60% of the observations. This 60% of data may be less likely to be included in the training dataset for the next learner. So, we have more learners working on the remaining "hard-to-classify" observations.
+
+Mathematically, the boosting technique uses a weighted sum of functions to predict the outcome class labels. We can try to fit the true model using weighted additive modeling. We start with a random learner that can classify some of the observations mostly correctly, possibly with some errors.
+$$\hat{y}_1=l_1.$$
+This $l_1$ is our first learner and $\hat{y}_1$ denotes its predictions (this equation is in matrix form). Then, we can calculate the residuals of our first leaner.
+$$\epsilon_1=y-v_1\times\hat{y}_1,$$
+where $v_1$ is a shrinkage parameter to avoid overfitting. Next, we fit the residual with another learner. This learner minimizes the following objective function $\sum_{i=1}^N||y_i-l_{k-1}-l_k||$. Here `k=2`. Then we obtain a second model $l_2$ with:
+$$\hat{y}_2=l_2.$$
+After that, we can update the residuals:
+$$\epsilon_2=\epsilon_1-v_2\times\hat{y}_2.$$
+We repeat this residual fitting until adding another learner $l_k$ results in updated residual $\epsilon_k$ that is smaller than a small predefined threshold. In the end, we will have an additive model like:
+$$L=v_1\times l_1+v_2\times l_2+...+v_k\times l_k,$$
+where we ensemble *k* weak learners to generate a stronger meta model.
+
+[Schapire and Freund](https://doi.org/10.1006/jcss.1997.1504) found that although individual learners trained on the pilot observations might be very weak in predicting in isolation, boosting the collective power of all of them is expected to generate a model **no worse than the best of all individual constituent models** included in the boosting ensemble. Usually, the boosting results are quite better than the top individual model. Although boosting can be used for almost all models, it's most commonly applied to decision trees.
+
+## Random forests
+
+Random forests, or decision tree forests, represents a boosting method focusing on decision tree learners.
+
+### Training random forests
+
+One approach to train and build random forests uses the `randomForest::randomForest()` method, which has the following invocation:
+
+`m<-randomForest(expression, data, ntree=500, mtry=sqrt(p))`
+
+* *expression*: the class variable and features we want to include in the model.
+* *data*: training data containing class and features.
+* *ntree*: number of voting decision trees
+* *mtry*: optional integer specifying the number of features to randomly select at each split. The `p` stands for number of features in the data.
+
+Let's build a random forest using the Quality of Life dataset.
+
+```{r message=F}
+# install.packages("randomForest")
+library(randomForest)
+set.seed(123)
+rf<-randomForest(as.factor(QOL_Q_01) ~ . , data=qol)
+rf
+```
+
+By default the model contains 500 voter trees and tried 6 variables at each split. Its OOB (out-of-bag) error rate is about 38%, which corresponds with a moderate accuracy (62%). Note that the OOB error rate is not re-substitution error. Next to the confusion matrix, we see the reported OOB error rate for all specific classes. All of these error rates are reasonable estimates of future performances with unseen data. We can see that this model is so far the best of all models, although it is still not highly predictive of `QOL_Q_01`.
+
+### Evaluating random forest performance
+
+In addition to model building, the `caret` package also supports model evaluation. It reports more detailed model performance evaluations. As usual, we need to specify the re-sampling method and a parameter grid. Let's use 10-folded CV re-sampling method as an example. The grid for this model contains information about the `mtry` parameter (the only tuning parameter for random forest). Previously we tried the default value $\sqrt{38}=6$ (38 is the number of features). This time we could compare multiple `mtry` parameters.  
+
+```{r}
+library(caret)
+ctrl<-trainControl(method="cv", number=10)
+grid_rf<-expand.grid(mtry=c(2, 4, 8, 16))
+```
+
+Next, we apply the `train()` function with our `ctrl` and `grid_rf` settings.
+
+```{r eval=T}
+set.seed(123)
+m_rf <- train(as.factor(QOL_Q_01) ~ ., data = qol, method = "rf", 
+metric = "Kappa", trControl = ctrl, tuneGrid = grid_rf)
+m_rf
+```
+
+This call may take a while to complete. The result appears to be a good model, when `mtry=16` we reached a moderately high accuracy (0.62) and good `kappa` statistic (0.44). This is a good result for a meta-learner of 6 dispersed classes (`table(as.factor(qol$QOL_Q_01))`).
+
+## Adaptive boosting
+We may achieve even higher accuracy using **AdaBoost**. Adaptive boosting (AdaBoost) can be used in conjunction with many other types of learning algorithms to improve their performance. The output of the other learning algorithms ('weak learners') is combined into a weighted sum that represents the final output of the boosted classifier. AdaBoost is adaptive in the sense that subsequent weak learners are tweaked in favor of those instances misclassified by the previous classifiers. 
+
+For binary cases, we could use the method `ada::ada()` and for multiple classes (multinomial/polytomous outcomes) we can use the package `adabag`. The `adabag::boosting()` function allows us to specify a method by setting `coeflearn`. The two main types of adaptive boosting methods that are commonly used include `AdaBoost.M1` algorithm, e.g., `Breiman` and `Freund`, or the `Zhu`'s `SAMME` algorithm. The key parameter in the `adabag::boosting()` method is *coeflearn*:
+
+* *Breiman* (default), corresponding to $\alpha=\frac{1}{2}\times \ln\left (\frac{1-err}{err} \right )$, using the AdaBoost.M1 algorithm, where $\alpha$ is the [weight updating coefficient](https://en.wikipedia.org/wiki/AdaBoost#Choosing_.CE.B1t)
+* *Freund*, corresponding to $\alpha=\ln\left (\frac{1-err}{err} \right )$, or
+* *Zhu*, corresponding to $\alpha=\ln\left (\frac{1-err}{err} \right ) + \ln(nclasses-1)$.
+
+The generalizations of AdaBoost for multiple classes ($\geq 2$) include `AdaBoost.M1` (where individual trees are required to have an error $\lt \frac{1}{2}$) and `SAMME` (where individual trees are required to have an error $\lt 1-\frac{1}{nclasses}$). 
+
+Let's see some examples using these three alternative adaptive boosting methods:
+
+```{r message=F}
+# Prep the data
+qol <- read.csv("https://umich.instructure.com/files/481332/download?download_frd=1")
+qol<-qol[!qol$CHARLSONSCORE==-9 , -c(1, 2)]
+qol$CHARLSONSCORE <- as.factor(qol$CHARLSONSCORE)
+qol$QOL_Q_01 <- as.factor(qol$QOL_Q_01)
+
+# install.packages("ada"); install.packages("adabag")
+library("ada"); library("adabag")
+set.seed(123)
+qol_boost <- boosting(QOL_Q_01 ~ . , data=qol, mfinal = 100, coeflearn = 'Breiman')
+mean(qol_boost$class==qol$QOL_Q_01)
+```
+
+```{r}
+set.seed(123)
+qol_boost <- boosting(QOL_Q_01 ~ ., data=qol, mfinal = 100, coeflearn = 'Freund')
+mean(qol_boost$class==qol$QOL_Q_01)
+```
+
+```{r}
+set.seed(1234)
+qol_boost <- boosting(QOL_Q_01 ~ ., data=qol, mfinal = 100, coeflearn = 'Zhu')
+mean(qol_boost$class==qol$QOL_Q_01)
+```
+
+We observe that `Zhu` approach achieves the best results, average $accuracy=0.78$. Notice that the default method is M1 `Breiman` and `mfinal` is the number of boosting iterations.
+
+```{r include=FALSE, eval=FALSE}
+# install.packages("kernlab")
+# install.packages("party")
+library(kernlab)
+library(party)
+
+qol_n<-as.data.frame(lapply(qol[, -41], normalize))
+qol_n<-cbind(qol_n, qol$cd)
+colnames(qol_n)[41]<-"cd"
+ctrl<-trainControl(method="boot632", number = 25)
+bagctrl <- bagControl(fit = ctreeBag$fit, predict = ctreeBag$pred, aggregate = ctreeBag$aggregate)
+svmbag <- train(as.factor(cd) ~ ., data = as.data.frame(qol_n), method="bag", trControl = ctrl, bagControl = bagctrl)
+svmbag
+```
+
+```{r include=FALSE, eval=FALSE}
+# See naiveBayes() hn_med data in Chapter 7
+
+hn_med<-read.csv("https://umich.instructure.com/files/1614350/download?download_frd=1", stringsAsFactors = FALSE)
+hn_med$seer_stage<-factor(hn_med$seer_stage)
+hn_med_corpus<-Corpus(VectorSource(hn_med$MEDICATION_SUMMARY))
+corpus_clean<-tm_map(hn_med_corpus, tolower)
+corpus_clean<-tm_map(corpus_clean, removePunctuation)
+corpus_clean <- tm_map(corpus_clean, stripWhitespace)
+corpus_clean <-tm_map(corpus_clean, removeNumbers)
+corpus_clean <- tm_map(corpus_clean, PlainTextDocument)
+hn_med_dtm<-DocumentTermMatrix(corpus_clean)
+hn_med$stage<-hn_med$seer_stage %in% c(4, 5, 7)
+hn_med$stage<-factor(hn_med$stage, levels=c(F, T), labels = c("early_stage", "later_stage"))
+hn_med_dict<-as.character(findFreqTerms(hn_med_dtm, 5))
+hn_dtm<-DocumentTermMatrix(corpus_clean, list(dictionary=hn_med_dict))
+convert_counts <- function(x) {
+x <- ifelse(x > 0, 1, 0)
+x <- factor(x, levels = c(0, 1), labels = c("No", "Yes"))
+return(x)
+}
+hn_dtm <- apply(hn_dtm, MARGIN = 2, convert_counts)
+```
+
+```{r include=FALSE, eval=FALSE}
+# install.packages("doMC")
+# library(doMC)
+# registerDoMC(cores=4)
+library(caret)
+qol<-read.csv("https://umich.instructure.com/files/481332/download?download_frd=1")
+qol<-qol[!qol$CHARLSONSCORE==-9 , -c(1, 2)]
+qol$cd<-qol$CHRONICDISEASESCORE>1.497
+qol$cd<-factor(qol$cd, levels=c(F, T), labels = c("minor_disease", "severe_disease"))
+qol<-qol[!qol$CHRONICDISEASESCORE==-9, ]
+qol<-qol[, -39]
+bagctrl <- bagControl(fit = nbBag$fit, 
+predict = nbBag$pred, 
+aggregate = nbBag$aggregate)
+set.seed(300)
+ctrl<-trainControl(method="cv", number = 10)
+
+# install.packages("klaR")
+library(klaR)
+svmbag <- train(qol[, -39], qol$cd, "bag", 
+trControl = ctrl, bagControl = bagctrl)
+# svmbag
+# table(qol$cd)
+```
+
+Try applying model improvement techniques using [other data from the list of our Case-Studies](https://umich.instructure.com/courses/38100/files/).
+
+<!--html_preserve-->
+<div>
+    	<footer><center>
+			<a href="http://www.socr.umich.edu/">SOCR Resource</a>
+				Visitor number <img src="http://counter.digits.net/?counter=SOCR"
+	 			align="middle" border="0" height="20" hspace="4" vspace="2" width="60">
+				<script type="text/javascript">
+					var d = new Date();
+					document.write(" | " + d.getFullYear() + " | ");
+				</script> 
+				<a href="http://socr.umich.edu/img/SOCR_Email.png"><img alt="SOCR Email"
+	 			title="SOCR Email" src="http://socr.umich.edu/img/SOCR_Email.png"
+	 			style="border: 0px solid ;"></a>
+	 		 </center>
+	 	</footer>
+
+	<!-- Start of StatCounter Code -->
+		<script type="text/javascript">
+			var sc_project=5714596; 
+			var sc_invisible=1; 
+			var sc_partition=71; 
+			var sc_click_stat=1; 
+			var sc_security="038e9ac4"; 
+		</script>
+		
+		<script type="text/javascript" src="https://www.statcounter.com/counter/counter.js"></script>
+	<!-- End of StatCounter Code -->
+	
+	<!-- GoogleAnalytics -->
+		<script src="https://www.google-analytics.com/urchin.js" type="text/javascript"> </script>
+		<script type="text/javascript"> _uacct = "UA-676559-1"; urchinTracker(); </script>
+	<!-- End of GoogleAnalytics Code -->
+</div>
+<!--/html_preserve-->
