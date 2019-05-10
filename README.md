@@ -1,7 +1,8 @@
 # DSPA
-**Data Science and Predictive Analytics (DSPA)**
 
-<img align="right" width="200" height="200" src="https://raw.githubusercontent.com/michigandatascience/DSPA/master/util/DSPA_Background.png">
+<a href="http://dspa.predictive.space/"><img align="right" width="300" height="200" src="https://raw.githubusercontent.com/michigandatascience/DSPA/master/util/DSPA_Background.png"></a>
+
+**Data Science and Predictive Analytics (DSPA)**
 
 This [Michigan Institute for Data Science (MIDAS)](http://midas.umich.edu/) partition includes the [SOCR](https://github.com/SOCR) [Data Science and Predictive Analytics: Biomedical and Health Applications using R](http://dspa.predictive.space/) learning modules and instructional resources.
 
@@ -23,9 +24,9 @@ Overview
 
 The [Data Science and Predictive Analytics (DSPA)](http://dspa.predictive.space/) materials include learning modules, lecture notes, videos, data sets, case-studies, code, and assignments developed as part of the [SOCR](http://socr.umich.edu/)/[MIDAS](http://midas.umich.edu/) textbook used for the University of Michigan HS650: Data Science and Predictive Analytics (DSPA) course. These materials provide learners with a solid foundation of the challenges, opportunities, and strategies for designing, collecting, managing, processing, interrogating, analyzing and interpreting complex health and biomedical datasets. Readers that finish the textbook and successfully complete the examples and assignments will gain unique skills and acquire a tool-chest of methods, software tools, and protocols that can be applied to a broad spectrum of Big Data problems.
 
- - Vision: Enable active-learning by integrating driving motivational challenges with mathematical foundations, computational statistics, and modern scientific inference
- - Values: Effective, reliable, reproducible, and transformative data-driven discovery supporting open-science
- - Strategic priorities: Trainees will develop scientific intuition, computational skills, and data-wrangling abilities to tackle Big biomedical and health data problems. Instructors will provide well-documented R-scripts and software recipes implementing atomic data-filters as well as complex end-to-end predictive big data analytics solutions.
+ - **Vision**: Enable active-learning by integrating driving motivational challenges with mathematical foundations, computational statistics, and modern scientific inference
+ - **Values**: Effective, reliable, reproducible, and transformative data-driven discovery supporting open-science
+ - **Strategic priorities**: Trainees will develop scientific intuition, computational skills, and data-wrangling abilities to tackle Big biomedical and health data problems. Instructors will provide well-documented R-scripts and software recipes implementing atomic data-filters as well as complex end-to-end predictive big data analytics solutions.
 
 
 Resources
