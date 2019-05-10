@@ -1,6 +1,8 @@
 # DSPA
 **Data Science and Predictive Analytics (DSPA)**
 
+![DSPA Logo](https://raw.githubusercontent.com/michigandatascience/DSPA/master/util/DSPA_Background.png)
+
 This [Michigan Institute for Data Science (MIDAS)](http://midas.umich.edu/) partition includes the [SOCR](https://github.com/SOCR) [Data Science and Predictive Analytics: Biomedical and Health Applications using R](http://dspa.predictive.space/) learning modules and instructional resources.
 
 Table of contents
